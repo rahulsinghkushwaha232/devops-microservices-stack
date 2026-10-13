@@ -9,7 +9,7 @@
     "test": "jest --runInBand tests"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "24.x"
   },
   "dependencies": {
     "express": "^4.21.2",
