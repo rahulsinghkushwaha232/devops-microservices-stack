@@ -41,10 +41,58 @@ function createApp({ fetchImpl = global.fetch } = {}) {
     }
   });
 
+  const demoUsers = [
+    { _id: '1', name: 'Rahul Singh Kushwaha', email: 'rahul@example.com', role: 'admin' },
+    { _id: '2', name: 'DevOps Engineer', email: 'engineer@cloud.io', role: 'user' }
+  ];
+  const demoOrders = [
+    { _id: '101', userId: '1', userName: 'Rahul Singh Kushwaha', item: 'Kubernetes EKS Cluster', quantity: 1, price: 120.00, status: 'completed' },
+    { _id: '102', userId: '2', userName: 'DevOps Engineer', item: 'Trivy Scanner License', quantity: 2, price: 45.00, status: 'pending' }
+  ];
+
+  function handleDemoUsers(req, res) {
+    if (req.method === 'GET') {
+      return res.json(demoUsers);
+    }
+    if (req.method === 'POST') {
+      const { name, email, role = 'user' } = req.body || {};
+      if (!name || !email) return res.status(400).json({ error: 'Name and email are required' });
+      const newUser = { _id: String(Date.now()), name, email, role };
+      demoUsers.push(newUser);
+      return res.status(201).json(newUser);
+    }
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  function handleDemoOrders(req, res) {
+    if (req.method === 'GET') {
+      return res.json(demoOrders);
+    }
+    if (req.method === 'POST') {
+      const { userId, item, quantity = 1, price = 0 } = req.body || {};
+      if (!userId || !item) return res.status(400).json({ error: 'User and item are required' });
+      const user = demoUsers.find(u => u._id === userId);
+      const newOrder = {
+        _id: String(Date.now()),
+        userId,
+        userName: user ? user.name : 'Demo User',
+        item,
+        quantity: Number(quantity),
+        price: Number(price),
+        status: 'pending'
+      };
+      demoOrders.push(newOrder);
+      return res.status(201).json(newOrder);
+    }
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   function proxy(prefix, targetEnvironmentVariable) {
     return async (req, res) => {
       const baseUrl = process.env[targetEnvironmentVariable];
       if (!baseUrl) {
+        if (prefix === 'user') return handleDemoUsers(req, res);
+        if (prefix === 'order') return handleDemoOrders(req, res);
         return res.status(502).json({ error: `${targetEnvironmentVariable} is not configured` });
       }
 

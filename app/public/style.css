@@ -12,6 +12,18 @@ body { margin: 0; }
 .hero h1 { margin: .35rem 0; font-size: clamp(2rem, 5vw, 3.25rem); }
 .hero p { color: #d0daed; }
 .hero .eyebrow { color: #91c6ff; font-size: .76rem; font-weight: 750; letter-spacing: .13em; }
+.demo-badge {
+  display: inline-block;
+  margin-top: 0.8rem;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #bfdbfe;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(191, 219, 254, 0.3);
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
 main { padding-top: 1.5rem; padding-bottom: 3rem; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .panel { padding: 1.5rem; border: 1px solid #e1e7f0; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px #1b2c4710; }
