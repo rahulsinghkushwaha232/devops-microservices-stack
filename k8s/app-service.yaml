@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: devops-demo
+  labels:
+    app.kubernetes.io/name: devops-app
+spec:
+  type: ClusterIP
+  selector:
+    app: devops-app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

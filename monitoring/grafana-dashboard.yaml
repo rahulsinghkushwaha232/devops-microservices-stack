@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-demo-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  devops-demo.json: |
+    {
+      "title": "DevOps Demo",
+      "uid": "devops-demo",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Request rate by service",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "sum by (job) (rate(http_requests_total{job=~\"devops-app|devops-user-service|devops-order-service\"}[5m]))",
+              "legendFormat": "{{job}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "5xx error rate by service",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "sum by (job) (rate(http_requests_total{job=~\"devops-app|devops-user-service|devops-order-service\",status=~\"5..\"}[5m])) / clamp_min(sum by (job) (rate(http_requests_total{job=~\"devops-app|devops-user-service|devops-order-service\"}[5m])), 0.001)",
+              "legendFormat": "{{job}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "percentunit", "min": 0, "max": 1 },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "p95 latency by service",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~\"devops-app|devops-user-service|devops-order-service\"}[5m])))",
+              "legendFormat": "{{job}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "s" },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Pod CPU",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"devops-demo\",container!=\"\",container!=\"POD\"}[5m]))",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "cores" },
+            "overrides": []
+          }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Pod memory",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"devops-demo\",container!=\"\",container!=\"POD\"})",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "bytes" },
+            "overrides": []
+          }
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "Pod restarts",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "expr": "sum by (pod, container) (increase(kube_pod_container_status_restarts_total{namespace=\"devops-demo\"}[1h]))",
+              "legendFormat": "{{pod}} / {{container}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "short", "min": 0 },
+            "overrides": []
+          }
+        }
+      ]
+    }

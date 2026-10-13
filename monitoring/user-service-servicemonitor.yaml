@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: devops-user-service
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: devops-user-service
+spec:
+  namespaceSelector:
+    matchNames:
+      - devops-demo
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: devops-user-service
+  jobLabel: app.kubernetes.io/name
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

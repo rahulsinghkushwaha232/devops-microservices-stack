@@ -1,0 +1,52 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devops-demo-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: devops-demo
+spec:
+  groups:
+    - name: devops-demo.http
+      rules:
+        - alert: DevOpsDemoHigh5xxErrorRate
+          expr: |
+            sum by (job) (rate(http_requests_total{job=~"devops-app|devops-user-service|devops-order-service",status=~"5.."}[5m]))
+            /
+            clamp_min(sum by (job) (rate(http_requests_total{job=~"devops-app|devops-user-service|devops-order-service"}[5m])), 0.001)
+            > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High HTTP 5xx error rate for {{ $labels.job }}
+            description: More than 5% of requests returned 5xx responses for five minutes.
+        - alert: DevOpsDemoHighP95Latency
+          expr: |
+            histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket{job=~"devops-app|devops-user-service|devops-order-service"}[5m]))) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High p95 HTTP latency for {{ $labels.job }}
+            description: The p95 HTTP request duration exceeded one second for five minutes.
+    - name: devops-demo.pods
+      rules:
+        - alert: DevOpsDemoPodNotReady
+          expr: |
+            kube_pod_status_ready{namespace="devops-demo",condition="true"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Pod {{ $labels.pod }} is not ready
+            description: A pod in the devops-demo namespace has not been ready for five minutes.
+        - alert: DevOpsDemoContainerRestarting
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="devops-demo"}[15m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: Container {{ $labels.container }} has restarted
+            description: A container in pod {{ $labels.pod }} restarted in the last 15 minutes.

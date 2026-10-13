@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevOps Demo</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/script.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <p class="eyebrow">NODE.JS · EXPRESS · MONGODB</p>
+      <h1>DevOps Demo</h1>
+      <p>Manage users and their orders through a simple service gateway.</p>
+    </div>
+  </header>
+  <main class="container">
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    <div class="grid">
+      <section class="panel">
+        <h2>Add a user</h2>
+        <form id="user-form">
+          <label>Name<input name="name" required maxlength="100"></label>
+          <label>Email<input name="email" type="email" required maxlength="254"></label>
+          <label>Role<select name="role"><option value="user">User</option><option value="admin">Admin</option></select></label>
+          <button type="submit">Add user</button>
+        </form>
+        <h3>Users</h3>
+        <ul id="users-list" class="records"></ul>
+      </section>
+      <section class="panel">
+        <h2>Create an order</h2>
+        <form id="order-form">
+          <label>User<select id="order-user" name="userId" required></select></label>
+          <label>Item<input name="item" required maxlength="150"></label>
+          <div class="form-row">
+            <label>Quantity<input name="quantity" type="number" min="1" step="1" value="1" required></label>
+            <label>Price<input name="price" type="number" min="0" step="0.01" required></label>
+          </div>
+          <button type="submit">Create order</button>
+        </form>
+        <h3>Orders</h3>
+        <ul id="orders-list" class="records"></ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

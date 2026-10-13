@@ -1,0 +1,6 @@
+aws_region         = "us-west-2"
+kubernetes_version = "1.34"
+
+# Adjust the Kubernetes version to one currently supported by EKS in aws_region.
+# Set node_instance_type, node_min_size, node_max_size, and node_desired_size
+# to values appropriate for your workload and budget before applying.

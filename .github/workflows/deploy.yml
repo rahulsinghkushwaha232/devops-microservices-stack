@@ -1,0 +1,108 @@
+name: Deploy to EKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to deploy
+        required: true
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy application to EKS
+    if: vars.ENABLE_CLUSTER_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION"
+        env:
+          EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+      - name: Apply manifests and verify deployment health
+        id: deploy
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          set -Eeuo pipefail
+          if [[ ! "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "Invalid image_tag input." >&2
+            exit 1
+          fi
+
+          sed -i -E "s/^    newTag: .+$/    newTag: ${IMAGE_TAG}/" k8s/kustomization.yaml
+          kubectl apply -k k8s
+
+          for deployment in mongo user-service order-service app; do
+            kubectl rollout status "deployment/${deployment}" \
+              --namespace devops-demo \
+              --timeout=5m
+          done
+
+          kubectl exec --namespace devops-demo deployment/app -- \
+            node -e "fetch('http://127.0.0.1:3000/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"
+
+      - name: Roll back deployments after any failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          rollback_failed=0
+          for deployment in app user-service order-service mongo; do
+            if ! kubectl rollout undo "deployment/${deployment}" \
+              --namespace devops-demo \
+              --wait=false; then
+              echo "::error::Rollback command failed for deployment/${deployment}"
+              rollback_failed=1
+            fi
+          done
+          exit "$rollback_failed"
+
+  summary:
+    name: Write deployment summary
+    if: always()
+    needs:
+      - deploy
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Write workflow result
+        env:
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          DEPLOY_ENABLED: ${{ vars.ENABLE_CLUSTER_DEPLOY }}
+        run: |
+          if [[ "$DEPLOY_ENABLED" != "true" ]]; then
+            {
+              echo "## Deployment not run"
+              echo
+              echo "Cluster deployment is disabled. Set the repository variable \`ENABLE_CLUSTER_DEPLOY\` to \`true\` to enable it."
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$DEPLOY_RESULT" == "success" ]]; then
+            {
+              echo "## Deployment succeeded"
+              echo
+              echo "The requested image tag was applied and deployment rollout and health checks passed."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Deployment failed"
+              echo
+              echo "The deployment job did not complete successfully. A rollback was attempted."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
